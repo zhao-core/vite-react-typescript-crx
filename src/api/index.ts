@@ -2,6 +2,18 @@
 // import '@/mock'
 /*global chrome*/
 
+interface Config {
+  background?: boolean;
+  url?: string;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  data?: any;
+  formData?: unknown;
+  method?: string;
+  done?(): void;
+  success?(response: unknown): void;
+  fail?(msg: string): void;
+}
+
 // 请求服务器地址（开发环境模拟请求地址）
 let API_DOMAIN = '/api/';
 // 请求服务器地址（正式build环境真实请求地址）
@@ -26,19 +38,19 @@ export const API_FAILED = '网络连接异常，请稍后再试';
 // API请求汇总
 export const apiReq = {
   // 登录
-  signIn: (config) => {
+  signIn: (config: Config) => {
     config.url = API_DOMAIN + 'login/';
     config.method = 'post';
     apiFetch(config);
   },
   // 获取数据
-  getData: (config) => {
+  getData: (config: Config) => {
     config.url = API_DOMAIN + 'getData/';
     config.method = 'get';
     apiFetch(config);
   },
   // 委托background提交数据
-  submitByBackground: (config) => {
+  submitByBackground: (config: Config) => {
     config.background = true;
     config.url = API_DOMAIN + 'submit/';
     config.method = 'post';
@@ -47,7 +59,7 @@ export const apiReq = {
 };
 
 // 发起请求
-function apiFetch(config) {
+function apiFetch(config: Config) {
   if (config.background && import.meta.env.MODE === 'production') {
     // [适用于build环境的content script]委托background script发起请求，此种方式只能传递普通json数据，不能传递函数及file类型数据。
     sendRequestToBackground(config);
@@ -67,7 +79,7 @@ function apiFetch(config) {
  * config.fail(err): 请求失败回调
  * config.done(): 请求结束回调
  */
-export function apiRequest(config) {
+export function apiRequest(config: Config) {
   // 如果没有设置config.data，则默认为{}
   if (config.data === undefined) {
     config.data = {};
@@ -78,14 +90,14 @@ export function apiRequest(config) {
 
   // 请求头设置
   const headers: HeadersInit = {};
-  let data: FormData| string = '';
+  let data: FormData | string;
 
   if (config.formData) {
     // 上传文件的兼容处理，如果config.formData=true，则以form-data方式发起请求。
     // fetch()会自动设置Content-Type为multipart/form-data，无需额外设置。
     data = new FormData();
     Object.keys(config.data).forEach(function (key) {
-      data.append(key, config.data[key]);
+      (data as FormData).append(key, config.data[key]);
     });
   } else {
     // 如果不长传文件，fetch()默认的Content-Type为text/plain;charset=UTF-8，需要手动进行修改。
@@ -101,7 +113,7 @@ export function apiRequest(config) {
   };
 
   // 发起请求
-  fetch(config.url, axiosConfig)
+  fetch(config.url || '', axiosConfig)
     .then((res) => res.json())
     .then((result) => {
       // 请求结束的回调
@@ -118,7 +130,7 @@ export function apiRequest(config) {
 }
 
 // 委托background执行请求
-function sendRequestToBackground(config) {
+function sendRequestToBackground(config: Config) {
   // chrome.runtime.sendMessage中只能传递JSON数据，不能传递file类型数据，因此直接从popup发起请求。
   // The message to send. This message should be a JSON-ifiable object.
   // 详情参阅：https://developer.chrome.com/extensions/runtime#method-sendMessage
@@ -132,7 +144,7 @@ function sendRequestToBackground(config) {
       (result) => {
         // 接收background script的sendResponse方法返回的消数据result
         config.done && config.done();
-        if (result.result === 'succ') {
+        if (result.code === 0) {
           config.success && config.success(result);
         } else {
           config.fail && config.fail(result.msg);
