@@ -4,19 +4,21 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite -c vite.popup.config.js",
-    "build": "tsc && vite build",
+    "dev": "vite -c vite.popup.config.ts",
+    "build": "vite build -c vite.popup.config.ts && vite build -c vite.content.config.ts && vite build -c vite.background.config.ts && node build.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview"
   },
   "dependencies": {
     "antd": "^5.8.3",
+    "mockjs": "^1.1.0",
+    "mockjs-fetch": "^2.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.15.0"
   },
   "devDependencies": {
-    "@types/chrome": "0.0.158",
+    "@types/chrome": "^0.0.246",
     "@types/node": "^20.8.5",
     "@types/react": "^18.2.15",
     "@types/react-dom": "^18.2.7",
